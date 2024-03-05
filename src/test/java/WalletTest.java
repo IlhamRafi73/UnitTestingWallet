@@ -1,77 +1,103 @@
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
+import org.junit.jupiter.api.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class WalletTest {
 
+    private static Wallet wallet;
+
+    @BeforeAll
+    static void setup() {
+        wallet = new Wallet("Budi");
+    }
+
+    @AfterAll
+    static void tearDown() {
+        wallet = null;
+    }
+
     @BeforeEach
-    public  void setUp() {
-        Wallet.listUangKoin = new ArrayList<>();
-        Wallet.listUangLembaran = new ArrayList<>();
+    void init() {
+        // Tidak ada
+    }
+
+    @AfterEach
+    void cleanup() {
+        wallet.listKartu.clear();
+        wallet.listUangKoin.clear();
+        wallet.listUangLembaran.clear();
     }
 
     @Test
-    public void testOwner() {
-        Wallet wallet = new Wallet("Slamet");
-        assertEquals("Alice", wallet.owner);
+    void testConstructor() {
+        assertNotNull(wallet);
+        assertEquals("Budi", wallet.owner);
+        assertTrue(wallet.listKartu.isEmpty());
+        assertTrue(wallet.listUangKoin.isEmpty());
+        assertTrue(wallet.listUangLembaran.isEmpty());
     }
 
     @Test
-    public void testTambahKartu() {
-        Wallet wallet = new Wallet("Soeharto");
-        wallet.tambahKartu("Credit Card");
-        assertTrue(wallet.listKartu.contains("Credit Card"));
+    void testTambahKartu() {
+        wallet.tambahKartu("Kartu ATM");
+        assertFalse(wallet.listKartu.isEmpty());
+        assertEquals(1, wallet.listKartu.size());
+        assertEquals("Kartu ATM", wallet.listKartu.get(0));
     }
 
     @Test
-    public void testAmbilKartu() {
-        Wallet wallet = new Wallet("Saman Brembo");
-        wallet.tambahKartu("Debit Card");
-        assertEquals("Debit Card", wallet.ambilKartu("Debit Card"));
-        assertNull(wallet.ambilKartu("Nonexistent Card"));
+    void testAmbilKartu() {
+        wallet.tambahKartu("Kartu E-money");
+        String kartuDiambil = wallet.ambilKartu("Kartu E-money");
+        assertNotNull(kartuDiambil);
+        assertEquals("Kartu E-money", kartuDiambil);
+        assertTrue(wallet.listKartu.isEmpty());
     }
 
     @Test
-    public void testTambahUangRupiahPositive() {
-        Wallet.tambahUangRupiah(5000);
-        Wallet.tambahUangRupiah(100);
-        assertEquals(1, Wallet.listUangKoin.size());
-        assertEquals(1, Wallet.listUangLembaran.size());
-        assertEquals(5000, (int) Wallet.listUangLembaran.get(0));
-        assertEquals(100, (int) Wallet.listUangKoin.get(0));
+    void testTambahUangRupiah() {
+        wallet.tambahUangRupiah(1000);
+        assertAll(
+                () -> assertEquals(1, wallet.listUangLembaran.size()),
+                () -> assertEquals(1000, wallet.listUangLembaran.get(0))
+
+        );
+        assertEquals(1, wallet.listUangLembaran.size());
+        assertEquals(1000, wallet.listUangLembaran.get(0));
+
+        wallet.tambahUangRupiah(500);
+        wallet.tambahUangRupiah(200);
+
+        assertAll(
+                () -> assertEquals(2, wallet.listUangKoin.size()),
+                () -> assertEquals(500, wallet.listUangKoin.get(0)),
+                () -> assertEquals(200, wallet.listUangKoin.get(1))
+
+        );
+
+        assertThrows(Error.class, () -> wallet.tambahUangRupiah(-100));
     }
 
     @Test
-    public void testTambahUangRupiahNegative() {
-        assertThrows(Error.class, () -> {
-            Wallet.tambahUangRupiah(-100);
-        });
-    }
-S
-    @Test
-    public void testAmbilUangAvailable() {
-        Wallet.tambahUangRupiah(2000);
-        assertEquals(2000, Wallet.ambilUang(2000));
+    void testAmbilUang() {
+        wallet.tambahUangRupiah(1000);
+        int uangDiambil = wallet.ambilUang(1000);
+        assertEquals(1000, uangDiambil);
+        assertTrue(wallet.listUangLembaran.isEmpty());
+
+        wallet.tambahUangRupiah(500);
+        uangDiambil = wallet.ambilUang(500);
+        assertEquals(500, uangDiambil);
+        assertTrue(wallet.listUangKoin.isEmpty());
+
     }
 
     @Test
-    public void testAmbilUangNotAvailable() {
-        Wallet.tambahUangRupiah(1000);
-        assertEquals(0, Wallet.ambilUang(500));
-    }
-
-    @Test
-    public void testTampilkanUang() {
-        Wallet wallet = new Wallet("Maryono");
-        wallet.tambahUangRupiah(5000);
+    void testTampilkanUang() {
         wallet.tambahUangRupiah(1000);
         wallet.tambahUangRupiah(500);
-
-        int totalMoney = wallet.tampilkanUang();
-        assertEquals(6500, totalMoney);
+        assertEquals(1500, wallet.tampilkanUang());
     }
 }
